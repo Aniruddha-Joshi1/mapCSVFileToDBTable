@@ -54,6 +54,8 @@ public class CountryCSVModel {
         this.currencyCode = currencyCode;
     }
 
+    // JPA needs a default constructor for it to work
+    // https://www.baeldung.com/jpa-no-argument-constructor-entity-class#:~:text=This%20default%20constructor%20is%20used,and%20its%20newInstance()%20method.
     public CountryCSVModel() {
     }
 

@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -15,15 +17,16 @@ public class CountryCSVService {
     @Autowired
     private CountryCSVRepository countryCSVRepository;
 
-    public void saveRecordsInDB(MultipartFile file) {
-        try{
-            // We convert to input stream because it is efficient than loading the whole file as bytes into the memory
-            // With input stream we can read and process the file incremantally like line by line or record by record
-            // instead of waiting for the entire file to be loaded
+    public void saveRecordsInDB(MultipartFile file) throws IOException {
+        // Headers are correct
+        if(CSVHelper.isMatchingHeaders(file.getInputStream())) {
             List<CountryCSVModel> countries = CSVHelper.csvToCountry(file.getInputStream());
             countryCSVRepository.saveAll(countries);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save the records in the DB - " + e.getMessage());
+        } else{
+            // Headers and it's data are jumbled
+            InputStream correctedStream = CSVHelper.rearrangeCsvColumns(file.getInputStream());
+            List<CountryCSVModel> countries = CSVHelper.csvToCountry(correctedStream);
+            countryCSVRepository.saveAll(countries);
         }
     }
 
