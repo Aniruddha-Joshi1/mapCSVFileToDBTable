@@ -30,6 +30,17 @@ public class CountryCSVService {
         }
     }
 
+    public void saveRecordChunksInDB(MultipartFile file, int firstRecord, int lastRecord) throws IOException {
+        if(CSVHelper.isMatchingHeaders(file.getInputStream())) {
+            List<CountryCSVModel> countries = CSVHelper.csvToCountryRecordChunk(file.getInputStream(), firstRecord, lastRecord, false);
+            countryCSVRepository.saveAll(countries);
+        } else{
+            InputStream correctedStream = CSVHelper.rearrangeCsvColumnsForChunkRecords(file.getInputStream(), firstRecord, lastRecord);
+            List<CountryCSVModel> countries = CSVHelper.csvToCountryRecordChunk(correctedStream, firstRecord, lastRecord, true);
+            countryCSVRepository.saveAll(countries);
+        }
+    }
+
     public List<CountryCSVModel> getAllRecords() {
         try {
            return countryCSVRepository.findAll();

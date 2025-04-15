@@ -8,6 +8,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.nio.Buffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,6 +23,20 @@ public class CSVHelper {
         return type.equals(file.getContentType());
     }
 
+    public static int numberOfRows(InputStream is){
+        try(BufferedReader fileReader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            String data;
+            // Exclude headers while counting the number of lines
+            int count = -1;
+            while((data = fileReader.readLine())!=null && !data.equals("")){
+                count++;
+            }
+            return count;
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot count the number of rows");
+        }
+    }
+
     public static boolean isMatchingHeaders(InputStream is){
         try(BufferedReader fileReader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))){
             String headerLine = fileReader.readLine();
@@ -31,6 +46,49 @@ public class CSVHelper {
             return expectedHeaders.equals(actualHeaders);
         } catch (IOException e){
             throw new RuntimeException("Cannot check for matching headers");
+        }
+    }
+
+    public static List<CountryCSVModel> csvToCountryRecordChunk(InputStream correctedInputStream, int firstRecord, int lastRecord, boolean rearrangedColumns) {
+        try(BufferedReader fileReader = new BufferedReader(new InputStreamReader(correctedInputStream))){
+            CSVParser csvParser = new CSVParser(fileReader,
+                    CSVFormat.RFC4180.builder().setHeader()
+                            .setSkipHeaderRecord(true)
+                            .setTrim(true)
+                            .setIgnoreEmptyLines(true)
+                            .setIgnoreHeaderCase(true)
+                            .setQuote('"')
+                            .setIgnoreSurroundingSpaces(true)
+                            .build()
+
+            );
+            List<CountryCSVModel> countries = new ArrayList<>();
+            int index = 0;
+            if(rearrangedColumns){
+                for(CSVRecord csvRecord:csvParser){
+                    CountryCSVModel country = new CountryCSVModel(
+                            csvRecord.get("Code"),
+                            csvRecord.get("Symbol"),
+                            csvRecord.get("Name")
+                    );
+                    countries.add(country);
+                }
+            } else{
+                for(CSVRecord csvRecord:csvParser){
+                    if(index>=firstRecord && index<=lastRecord){
+                        CountryCSVModel country = new CountryCSVModel(
+                                csvRecord.get("Code"),
+                                csvRecord.get("Symbol"),
+                                csvRecord.get("Name")
+                        );
+                        countries.add(country);
+                    }
+                    index++;
+                }
+            }
+            return countries;
+        } catch (IOException e){
+            throw new RuntimeException("Failed to parse the CSV: " + e.getMessage());
         }
     }
 
@@ -46,8 +104,10 @@ public class CSVHelper {
                             .setIgnoreSurroundingSpaces(true)
                             .build());
             List<CountryCSVModel> countries = new ArrayList<>();
-            Iterable<CSVRecord> csvRecords = csvParser.getRecords();
-            for(CSVRecord csvRecord : csvRecords){
+//            Iterable<CSVRecord> csvRecords = csvParser.getRecords();
+            // changed from csvRecords to csvParser because according to documentation, we can use csvParser instead of storing all
+            // records in memory using Iterable<CSVRecord>
+            for(CSVRecord csvRecord : csvParser){
                 CountryCSVModel country = new CountryCSVModel(
                         csvRecord.get("Code"),
                         csvRecord.get("Symbol"),
@@ -58,6 +118,42 @@ public class CSVHelper {
             return countries;
         } catch (IOException e) {
             throw new RuntimeException("Failed to parse CSV: " + e.getMessage());
+        }
+    }
+
+    public static InputStream rearrangeCsvColumnsForChunkRecords(InputStream originalInputStream, int firstRecord, int lastRecord) throws IOException{
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(originalInputStream, StandardCharsets.UTF_8))){
+            String headerLine = reader.readLine();
+            if (headerLine == null) throw new IOException("CSV file is empty.");
+            CSVParser parser = new CSVParser(reader,
+                    CSVFormat.RFC4180.builder().setHeader(headerLine.split(","))
+                            .setSkipHeaderRecord(false)
+                            .setTrim(true)
+                            .setIgnoreHeaderCase(true)
+                            .setIgnoreEmptyLines(true)
+                            .setQuote('"')
+                            .setIgnoreSurroundingSpaces(true)
+                            .build());
+            Path tempFile = Files.createTempFile("corrected-recordChunk-csv", ".csv");
+            try (BufferedWriter writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
+                CSVPrinter printer = new CSVPrinter(writer, CSVFormat.RFC4180);
+                printer.printRecord(EXPECTED_HEADERS);
+
+                // Reorder fields for each record
+                int index = 0;
+                for (CSVRecord record : parser) {
+                    if(index>=firstRecord && index<=lastRecord){
+                        List<String> reorderedFields = Arrays.stream(EXPECTED_HEADERS)
+                                .map(header -> record.get(header))
+                                .toList();
+                        printer.printRecord(reorderedFields);
+                    }
+                    index++;
+                }
+            }
+            return Files.newInputStream(tempFile);
+        } catch(IOException e){
+            throw new RuntimeException("Cannot rearrange the columns: " + e.getMessage());
         }
     }
 
