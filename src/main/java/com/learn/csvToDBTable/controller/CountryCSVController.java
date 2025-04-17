@@ -9,26 +9,19 @@ import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 
 import static com.learn.csvToDBTable.helper.CSVHelper.isCSV;
 
-@Controller
+@RestController
 public class CountryCSVController {
     @Autowired
     private CountryCSVService countryCSVService;
 
     @PostMapping("/saveRecords")
-    public ResponseEntity<ResponseMessage<String>> saveRecords(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<ResponseMessage<String>> saveRecords(@RequestPart("file") MultipartFile file) {
         ResponseMessage<String> resp = new ResponseMessage<>();
         // check if csv or not
         if (!isCSV(file)) {
@@ -46,7 +39,7 @@ public class CountryCSVController {
     }
 
     @PostMapping("saveRecordsInChunks")
-    public ResponseEntity<ResponseMessage<String>> saveRecordsInChunks(@RequestParam("file") MultipartFile file,
+    public ResponseEntity<ResponseMessage<String>> saveRecordsInChunks(@RequestPart("file") MultipartFile file,
                                                                        @RequestParam int firstRecord,
                                                                        @RequestParam int lastRecord){
         ResponseMessage<String> resp = new ResponseMessage<>();
@@ -54,6 +47,7 @@ public class CountryCSVController {
             int diff = lastRecord - firstRecord;
             int numberOfRows = CSVHelper.numberOfRows(file.getInputStream());
             if(numberOfRows<lastRecord) throw new RuntimeException("Last record is greater than number of rows available");
+            if(firstRecord<0) throw new RuntimeException("First Record cannot be less than 0");
             if(diff<= AppConstants.MAX_CHUNK_SIZE){
                 countryCSVService.saveRecordChunksInDB(file, firstRecord, lastRecord);
                 resp.setMessage(String.format("Record Number %d to %d uploaded successfully", firstRecord, lastRecord));
