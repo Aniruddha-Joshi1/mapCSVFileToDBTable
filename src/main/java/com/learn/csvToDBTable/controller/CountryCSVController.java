@@ -5,7 +5,8 @@ import com.learn.csvToDBTable.dto.ResponseMessage;
 import com.learn.csvToDBTable.helper.CSVHelper;
 import com.learn.csvToDBTable.model.CountryCSVModel;
 import com.learn.csvToDBTable.service.CountryCSVService;
-import lombok.Data;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,19 +21,24 @@ public class CountryCSVController {
     @Autowired
     private CountryCSVService countryCSVService;
 
+    private static final Logger logger = LoggerFactory.getLogger(CountryCSVController.class);
+
     @PostMapping("/saveRecords")
     public ResponseEntity<ResponseMessage<String>> saveRecords(@RequestPart("file") MultipartFile file) {
         ResponseMessage<String> resp = new ResponseMessage<>();
         // check if csv or not
         if (!isCSV(file)) {
+            logger.info("User did not upload a CSV file");
             resp.setMessage("Please upload a CSV file!");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
         }
         try{
             countryCSVService.saveRecordsInDB(file);
+            logger.info("CSV file - {} stored successfully", file.getOriginalFilename());
             resp.setMessage("File uploaded successfully: " + file.getOriginalFilename());
             return ResponseEntity.status(HttpStatus.OK).body(resp);
         } catch (Exception e) {
+            logger.trace("Could not save the file - {}", e);
             resp.setMessage("Error processing file: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
         }
@@ -42,7 +48,12 @@ public class CountryCSVController {
     public ResponseEntity<ResponseMessage<String>> saveRecordsInChunks(@RequestPart("file") MultipartFile file,
                                                                        @RequestParam int firstRecord,
                                                                        @RequestParam int lastRecord){
+
         ResponseMessage<String> resp = new ResponseMessage<>();
+        if (!isCSV(file)) {
+            resp.setMessage("Please upload a CSV file!");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
+        }
         try{
             int diff = lastRecord - firstRecord;
             int numberOfRows = CSVHelper.numberOfRows(file.getInputStream());

@@ -1,14 +1,16 @@
 package com.learn.csvToDBTable.helper;
 
+import com.learn.csvToDBTable.controller.CountryCSVController;
 import com.learn.csvToDBTable.model.CountryCSVModel;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
-import java.nio.Buffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,6 +20,7 @@ public class CSVHelper {
     public static final String type = "text/csv";
     public static final String[] EXPECTED_HEADERS = {"Code", "Symbol", "Name"};
     public static final List<String> expectedHeaders = Arrays.stream(EXPECTED_HEADERS).toList();
+    private static final Logger logger = LoggerFactory.getLogger(CSVHelper.class);
 
     public static boolean isCSV(MultipartFile file){
         return type.equals(file.getContentType());
@@ -62,6 +65,7 @@ public class CSVHelper {
                             .build()
 
             );
+            logger.info("CSV Parsed successfully");
             List<CountryCSVModel> countries = new ArrayList<>();
             int index = 0;
             if(!rearrangedColumns && isSaveAsChunks){
@@ -76,6 +80,7 @@ public class CSVHelper {
                     }
                     index++;
                 }
+                logger.info("Countries, btw first and last record index, added in the ArrayList succesfully");
             } else{
                 for(CSVRecord csvRecord:csvParser){
                     CountryCSVModel country = new CountryCSVModel(
@@ -85,6 +90,7 @@ public class CSVHelper {
                     );
                     countries.add(country);
                 }
+                logger.info("All the countries added successfully");
             }
             return countries;
         } catch (IOException e){
@@ -106,6 +112,7 @@ public class CSVHelper {
                             .setQuote('"')
                             .setIgnoreSurroundingSpaces(true)
                             .build());
+            logger.info("CSV Parsed successfully for rearranging the columns");
             Path tempFile = Files.createTempFile("corrected-recordChunk-csv", ".csv");
             System.out.println("Temporary directory: " + System.getProperty("java.io.tmpdir"));
             try (BufferedWriter writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
@@ -133,6 +140,7 @@ public class CSVHelper {
                     }
                 }
             }
+            logger.info("Created a temporary file successfully");
             return Files.newInputStream(tempFile);
         } catch(IOException e){
             throw new RuntimeException("Cannot rearrange the columns: " + e.getMessage());
