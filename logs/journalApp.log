@@ -1,0 +1,9 @@
+25-04-30 12:06:26.153 [http-nio-8080-exec-2] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet' 
+25-04-30 12:06:26.165 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet' 
+25-04-30 12:06:26.170 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 4 ms 
+25-04-30 12:06:26.302 [http-nio-8080-exec-2] INFO  c.l.c.c.CountryCSVController - Started saving records into DB 
+25-04-30 12:06:26.324 [http-nio-8080-exec-2] INFO  c.l.csvToDBTable.helper.CSVHelper - CSV Parsed successfully for rearranging the columns 
+25-04-30 12:06:26.347 [http-nio-8080-exec-2] INFO  c.l.csvToDBTable.helper.CSVHelper - Created a temporary file successfully 
+25-04-30 12:06:26.348 [http-nio-8080-exec-2] INFO  c.l.csvToDBTable.helper.CSVHelper - CSV Parsed successfully 
+25-04-30 12:06:26.349 [http-nio-8080-exec-2] INFO  c.l.csvToDBTable.helper.CSVHelper - All the countries added successfully 
+25-04-30 12:06:26.538 [http-nio-8080-exec-2] INFO  c.l.c.c.CountryCSVController - CSV file - test.csv stored successfully 

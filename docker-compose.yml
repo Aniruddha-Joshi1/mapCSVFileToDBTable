@@ -1,12 +1,17 @@
 version: '3.7'
+#services define all the containers that we want to run
 services:
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
     container_name: elasticsearch
+    #so that it does not ask password
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+    #binds our localhost port to the container port
+    #9201:9200 => machine's 9201 port is mapped to container's 9200.
+    #Inside Docker, Elasticsearch would still listen on 9200 but we would externally hit it on 9201
     ports:
       - "9200:9200"
     networks:
@@ -15,10 +20,13 @@ services:
   logstash:
     image: docker.elastic.co/logstash/logstash:8.12.0
     container_name: logstash
+    #This tells the container to find the logstash config file from local and mount it in the next given path (after the colon, taken from docs)
+    #https://www.elastic.co/docs/reference/logstash/dir-layout
     volumes:
       - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
     ports:
       - "5000:5000"
+    #will run after elasticsearch runs
     depends_on:
       - elasticsearch
     networks:

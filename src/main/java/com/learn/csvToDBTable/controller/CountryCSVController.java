@@ -33,6 +33,7 @@ public class CountryCSVController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
         }
         try{
+            logger.info("Started saving records into DB");
             countryCSVService.saveRecordsInDB(file);
             logger.info("CSV file - {} stored successfully", file.getOriginalFilename());
             resp.setMessage("File uploaded successfully: " + file.getOriginalFilename());
@@ -51,6 +52,7 @@ public class CountryCSVController {
 
         ResponseMessage<String> resp = new ResponseMessage<>();
         if (!isCSV(file)) {
+            logger.info("User did not upload a CSV file");
             resp.setMessage("Please upload a CSV file!");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
         }
@@ -60,6 +62,7 @@ public class CountryCSVController {
             if(numberOfRows<lastRecord) throw new RuntimeException("Last record is greater than number of rows available");
             if(firstRecord<0) throw new RuntimeException("First Record cannot be less than 0");
             if(diff<= AppConstants.MAX_CHUNK_SIZE){
+                logger.info("Started saving the records in chunks into DB");
                 countryCSVService.saveRecordChunksInDB(file, firstRecord, lastRecord);
                 resp.setMessage(String.format("Record Number %d to %d uploaded successfully", firstRecord, lastRecord));
                 return ResponseEntity.status(HttpStatus.OK).body(resp);
@@ -67,6 +70,7 @@ public class CountryCSVController {
                 throw new RuntimeException("Cannot accept more than 50 records");
             }
         } catch (Exception e){
+            logger.trace("Could not save the file - {}", e);
             resp.setMessage("Error in processing file: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
         }
@@ -76,11 +80,13 @@ public class CountryCSVController {
     public ResponseEntity<ResponseMessage<List<CountryCSVModel>>> getAllRecords(){
         ResponseMessage<List<CountryCSVModel>> resp = new ResponseMessage<>();
         try {
+            logger.info("Started fetching all the records stored in the DB");
             List<CountryCSVModel> countries = countryCSVService.getAllRecords();
             resp.setData(countries);
             resp.setMessage("Retrieved data successfully");
             return ResponseEntity.status(HttpStatus.OK).body(resp);
         } catch (Exception e){
+            logger.trace("Could not retrieve all the records from the DB - {}", e);
             System.out.println(e.getStackTrace());
             throw new RuntimeException("Failed to retrieve all the records from the DB");
         }
