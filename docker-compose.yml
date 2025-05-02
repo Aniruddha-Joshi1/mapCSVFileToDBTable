@@ -14,6 +14,9 @@ services:
     #Inside Docker, Elasticsearch would still listen on 9200 but we would externally hit it on 9201
     ports:
       - "9200:9200"
+    #This helps in persisting the data in elasticsearch even after you stop the container
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
       - elk
 
@@ -37,12 +40,19 @@ services:
     container_name: kibana
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=yourStrongPassword
+#      - SERVER_SSL_ENABLED=false
     ports:
       - "5601:5601"
     depends_on:
       - elasticsearch
     networks:
       - elk
+
+volumes:
+  elasticsearch-data:
+    driver: local
 
 networks:
   elk:
